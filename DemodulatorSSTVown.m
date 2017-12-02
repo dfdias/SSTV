@@ -1,9 +1,9 @@
 % Desmodulacao de um sinal SSTV na componente que codifica a intensidade
 % das linhas na frequencia
 
-clear; clc
+ clear; clc
 
-[x,Fa]= audioread('f.wav');
+[x,Fa]= audioread('white.wav');
 x = x(:,1);
 Ta= 1/Fa;
 % Determina o numero de amostras para analise em frequ?ncia
@@ -36,34 +36,71 @@ t= (0:length(e)-1)*Ta*1000;
 plot(t,e(:,[2 4]))
 xlabel('ms')
 title('Saida dos detetores de envolvente')
-legend('1100Hz','1200Hz','1300Hz','1900Hz')
+legend('1200Hz','1500Hz')
 
-% Espectrograma de uma linha
-
-figure(3)
-im = [0]
-Nfft= 32;
-ini= 40000
-%spectrogram(x(ini:(ini+1614+32)),32,26,2048,Fa,'yaxis');
-
-%pcolor(ans)
-
-% Calcula o maximo de cada DFT para obter o nivel de cinza
-%[dum,I]= max(S);
-
-%figure(4)
-%stem(I)
-
+%saturação do nível de saida dos detetores de envolvente
+load('matlab.mat');
+e((e(:,2)>=0.025),2)= 0.025;
+e((e(:,4)>=0.025),4)= 0.025;
+plot(t,e(:,[2 4]))
+xlabel('ms')
+title('Saida dos detetores de envolvente')
+legend('1200Hz','1500Hz')
 % Cada linha tem cerca de 1614 amosrtras do sinal e um pixel dura cerca de
 % 6 amostras. Como se usou uma DFT de 128 amostras vamos ter 65 n?veis de
 % cinza.
-nfft = 128;
+
+%encontra os pulsos de sincronização  de linha
+
+[pks,locs] = findpeaks(e(:,2),'MinPeakHeight',0.012);
+
+nfft = 2048;
 fvals = (Fa*(0:(nfft/2)-1)/nfft);
-tpixel = 572e-6
-pixelsample = round(tpixel/Ta)
+tpixel = (146.432e-3)
+
 tsync = 4862e-6
 tsyncsample = round(tsync/Ta)
+ini = locs(3);
+pix = 1 : 1 : 3*256;
+lines = locs(3:end);
+figure(4)
+cfreqs = zeros(320,256,3);
 
-pix = 1 : 1 : 257;
-fftx = fft(x(ini:ini+25),nfft)
+k = 0;
+
+for j = 1 : length(lines)-1 
+    pixelsample = round((locs(j+1)-locs(j))/(320*3));
+    porchsamples = round((locs(j+1)-locs(j))/320);
+
+    
+   for i = 1 : 320*3
+
+         fftx = fft(x(locs(j)+(i-1)*pixelsample:(locs(j))+(i*pixelsample)),nfft) ;
+         maxs = find(abs(fftx(((nfft/2)+1):end)) == max(abs(fftx((nfft/2)+1:end))));
+         if (i <= 320)
+         cfreqs(i,j,1) = fvals(max(maxs))/10;
+         end
+         if( i > 320 && i <= 320*2)
+         cfreqs(i-(320*1)+1,j,2) = fvals(max(maxs))/10;
+         end
+         if (i > 2*320 && i <= 320*3)
+         cfreqs(i-(320*2)+1,j,3) = fvals(max(maxs))/10;
+         end;    
+                 
+      
+
+    end;
+end;
+
+fig = zeros(320,256,3);
+%converte as frequências em bytes de cor 0-256
+for k = 1 : 3
+    for i = 1 : 256
+        for j = 1: 320
+            fig(j,i,k )= round((cfreqs(j,i,k)-1500)/3.1372549);
+        end;
+    end;
+end;
+
+imshow(uint8(fig))
 
