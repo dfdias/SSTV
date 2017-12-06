@@ -1,9 +1,10 @@
+
 % Desmodulacao de um sinal SSTV na componente que codifica a intensidade
 % das linhas na frequencia
 
  clear; clc
 
-[x,Fa]= audioread('model.wav');
+[x,Fa]= audioread('m.wav');
 x = x(:,1);
 Ta= 1/Fa;
 % Determina o numero de amostras para analise em frequ?ncia
@@ -54,15 +55,16 @@ legend('1200Hz','1500Hz')
 
 [pks,locs] = findpeaks(e(:,2),'MinPeakHeight',0.012);
 
-nfft = 4096;
+nfft = 512;
 fvals = (Fa*(0:(nfft/2)-1)/nfft);
 tpixel = (146.432e-3)
 
 tsync = 4862e-6
 tsyncsample = round(tsync/Ta)
-ini = locs(3);
+ini = locs(7);
 pix = 1 : 1 : 3*256;
-lines = locs(3:end);
+lines = locs(7:end);
+locs= locs(7:end);
 figure(4)
 cfreqs = zeros(320,256,3);
 
@@ -78,13 +80,37 @@ for j = 1 : length(lines)-1
          fftx = fft(x(locs(j)+(i-1)*pixelsample:(locs(j))+(i*pixelsample)),nfft) ;
          maxs = find(abs(fftx(((nfft/2)+1):end)) == max(abs(fftx((nfft/2)+1:end))));
          if (i <= 320)
-         cfreqs(i,j,1) = fvals(max(maxs))/10;
+              aux = fvals(max(maxs))/9;
+           if aux > 2300 
+               aux =2300
+           end;
+           if aux < 1500
+               aux = 1500
+           end;
+              
+         cfreqs(i,j,2) = aux;
          end
          if( i > 320 && i <= 320*2)
-         cfreqs(i-(320*1)+1,j,2) = fvals(max(maxs))/10;
+           aux = fvals(max(maxs))/9;
+           if aux > 2300 
+               aux =2300
+           end;
+           if aux < 1500
+               aux = 1500
+           end;
+              
+         cfreqs(i-(320*1)+1,j,1) = aux;
          end
          if (i > 2*320 && i <= 320*3)
-         cfreqs(i-(320*2)+1,j,3) = fvals(max(maxs))/10;
+           aux = fvals(max(maxs))/9;
+           if aux > 2300 
+               aux =2300
+           end;
+           if aux < 1500
+               aux = 1500
+           end;
+              
+         cfreqs(i-(320*2)+1,j,3) = aux;
          end;    
                  
       
@@ -97,14 +123,10 @@ fig = zeros(320,256,3);
 for k = 1 : 3
     for i = 1 : 256
         for j = 1: 320
-            fig(j,i,k )= round((cfreqs(j,i,k)-1500)/3.1372549);
+            fig(j,i,k )= round((cfreqs(j,i,k)-1500)/3.1);
         end;
     end;
 end;
-auxfi = zeros(320,256,3);
-auxfi = fig(:,:,2);
-auxfi = fig(:,:,1);
-auxfi = fig(:,:,3);
-fig = auxfi;
-imshow(uint8(fig))
+
+imshow(uint8(fig),[])
 
